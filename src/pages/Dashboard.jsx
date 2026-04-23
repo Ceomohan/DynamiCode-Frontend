@@ -61,42 +61,61 @@ const Dashboard = () => {
   }, [stats]);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex justify-between items-center mb-12">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-4xl font-bold">DynamiCode Dashboard</h1>
-            {headerBadge}
+    <div className="min-h-screen bg-[#050510] text-white font-sans p-8 relative overflow-hidden">
+      {/* Background Gradients */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/5 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/5 blur-[120px] rounded-full" />
+      </div>
+
+      <div className="max-w-7xl mx-auto relative z-10">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-16">
+          <div className="space-y-2">
+            <div className="flex items-center gap-4">
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+                Welcome back, <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">{user?.name}</span>
+              </h1>
+              {headerBadge}
+            </div>
+            <p className="text-gray-400">Your coding journey is looking great today.</p>
           </div>
-          <div className="flex items-center space-x-3">
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => navigate('/practice')}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl font-bold hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all hover:scale-105"
+            >
+              Practice Now
+            </button>
             <button
               onClick={() => navigate('/leaderboard')}
-              className="bg-gray-800 hover:bg-gray-700 border border-gray-700 px-4 py-2 rounded font-bold transition"
+              className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-all backdrop-blur-sm"
             >
               Leaderboard
             </button>
             <button
               onClick={() => navigate('/friends')}
-              className="bg-gray-800 hover:bg-gray-700 border border-gray-700 px-4 py-2 rounded font-bold transition"
+              className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-all backdrop-blur-sm"
             >
               Friends
             </button>
             {user?.role === 'admin' && (
               <button
                 onClick={() => navigate('/admin')}
-                className="bg-purple-700 hover:bg-purple-600 border border-purple-500 px-4 py-2 rounded font-bold transition"
+                className="px-6 py-3 bg-purple-500/20 border border-purple-500/30 text-purple-400 rounded-xl font-bold hover:bg-purple-500/30 transition-all backdrop-blur-sm"
               >
                 Admin
               </button>
             )}
             <button
               onClick={onLogout}
-              className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-bold transition"
+              className="px-6 py-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl font-bold hover:bg-red-500/20 transition-all backdrop-blur-sm"
             >
               Logout
             </button>
           </div>
         </header>
+
 
         {statsError && (
           <div className="mb-6 bg-red-900/50 border border-red-600 text-red-200 p-4 rounded">
