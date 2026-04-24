@@ -5,7 +5,28 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      animation: {
+        'gradient-x': 'gradient-x 3s ease infinite',
+        'shimmer': 'shimmer 2s linear infinite',
+      },
+      keyframes: {
+        'gradient-x': {
+          '0%, 100%': {
+            'background-size': '200% 200%',
+            'background-position': 'left center',
+          },
+          '50%': {
+            'background-size': '200% 200%',
+            'background-position': 'right center',
+          },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+      },
+    },
   },
   plugins: [],
 }

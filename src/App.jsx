@@ -6,9 +6,11 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
+import PracticeTopic from './pages/PracticeTopic';
 import PracticeWorkspace from './pages/PracticeWorkspace';
 import Leaderboard from './pages/Leaderboard';
 import Friends from './pages/Friends';
+import Community from './pages/Community';
 import AdminDashboard from './pages/admin/AdminDashboard';
 
 // Protected Route Component
@@ -69,6 +71,14 @@ function App() {
             }
           />
           <Route
+            path="/practice/:slug"
+            element={
+              <ProtectedRoute>
+                <PracticeTopic />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/practice"
             element={
               <ProtectedRoute>
@@ -89,6 +99,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Friends />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/community"
+            element={
+              <ProtectedRoute>
+                <Community />
               </ProtectedRoute>
             }
           />
