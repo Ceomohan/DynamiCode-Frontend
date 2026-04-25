@@ -5,6 +5,8 @@ import AuthContext from '../context/AuthContext';
 import XPBar from '../components/profile/XPBar';
 import StatsCard from '../components/profile/StatsCard';
 import Achievements from '../components/profile/Achievements';
+import TopicCard from '../components/practice/TopicCard';
+import { Search, Filter, Rocket, TrendingUp, Calendar } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, logout } = useContext(AuthContext);
@@ -13,6 +15,12 @@ const Dashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [statsError, setStatsError] = useState(null);
+  const [topics, setTopics] = useState([]);
+  const [loadingTopics, setLoadingTopics] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [exploreQuery, setExploreQuery] = useState('');
+  const [recommendation, setRecommendation] = useState(null);
+  const [selectedDifficulty, setSelectedDifficulty] = useState('All');
 
   const onLogout = () => {
     logout();
@@ -20,8 +28,9 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       setLoadingStats(true);
+      setLoadingTopics(true);
       setStatsError(null);
       try {
         const token = localStorage.getItem('token');
@@ -30,19 +39,55 @@ const Dashboard = () => {
             Authorization: `Bearer ${token}`,
           },
         };
-        const res = await axios.get('/api/gamification/stats', config);
-        setStats(res.data.stats);
-        setAnalytics(res.data.analytics);
+        
+        // Fetch Stats
+        const statsRes = await axios.get('/api/gamification/stats', config);
+        setStats(statsRes.data.stats);
+        setAnalytics(statsRes.data.analytics);
+
+        // Fetch Topics
+        const topicsRes = await axios.get('/api/topics', config);
+        setTopics(topicsRes.data);
+
+        // Fetch Recommendations
+        const recRes = await axios.get('/api/adaptive/recommendations', config);
+        setRecommendation(recRes.data);
       } catch (err) {
-        console.error('Failed to load gamification stats:', err);
+        console.error('Failed to load dashboard data:', err);
         setStatsError(err.response?.data?.message || 'Failed to load stats');
       } finally {
         setLoadingStats(false);
+        setLoadingTopics(false);
       }
     };
 
-    fetchStats();
+    fetchData();
   }, []);
+
+  const filteredTopics = useMemo(() => {
+    return topics.filter(topic => 
+      topic.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [topics, searchQuery]);
+
+  const exploreTopics = useMemo(() => {
+    return topics.filter(topic => 
+      topic.name.toLowerCase().includes(exploreQuery.toLowerCase())
+    );
+  }, [topics, exploreQuery]);
+
+  const popularTopics = useMemo(() => {
+    return [...topics]
+      .sort((a, b) => (b.problemCount || 0) - (a.problemCount || 0))
+      .slice(0, 6);
+  }, [topics]);
+
+  const recentlyPracticed = useMemo(() => {
+    // Mock data for recently practiced - in a real app this would come from analytics/progress API
+    return topics
+      .filter(t => t.solvedCount > 0)
+      .slice(0, 4);
+  }, [topics]);
 
   const headerBadge = useMemo(() => {
     if (!stats) return null;
@@ -99,6 +144,12 @@ const Dashboard = () => {
             >
               Friends
             </button>
+            <button
+              onClick={() => navigate('/community')}
+              className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-all backdrop-blur-sm"
+            >
+              Community
+            </button>
             {user?.role === 'admin' && (
               <button
                 onClick={() => navigate('/admin')}
@@ -123,26 +174,72 @@ const Dashboard = () => {
           </div>
         )}
 
-        <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <main className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
           {/* Left: Profile + Gamification */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700">
-              <h2 className="text-2xl font-bold mb-2">Welcome, {user && user.name}!</h2>
-              <p className="text-gray-400 mb-4">Your progress updates automatically as you practice.</p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gray-900/40 border border-gray-700 rounded p-4">
-                  <div className="text-sm font-bold mb-2">User Profile</div>
-                  <p className="text-sm">
-                    <span className="font-semibold text-blue-400">Email:</span> {user && user.email}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    <span className="font-semibold text-gray-400">ID:</span> {user && user._id}
-                  </p>
+            {/* Quick Actions / Recommendations */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/30 p-6 rounded-2xl backdrop-blur-sm group hover:border-blue-500/50 transition-all">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="p-3 bg-blue-500/20 rounded-xl">
+                    <Rocket className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">
+                      {recommendation?.recommendedProblem ? 'Continue Practice' : 'Start Your Journey'}
+                    </h3>
+                    <p className="text-sm text-gray-400">
+                      {recommendation?.recommendedProblem 
+                        ? `Next: ${recommendation.recommendedProblem.title}`
+                        : 'Pick a topic to begin mastering coding'}
+                    </p>
+                  </div>
                 </div>
+                <button 
+                  onClick={() => {
+                    if (recommendation?.recommendedProblem) {
+                      navigate(`/practice?problem=${recommendation.recommendedProblem._id}`);
+                    } else {
+                      navigate('/practice');
+                    }
+                  }}
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20"
+                >
+                  {recommendation?.recommendedProblem ? 'Resume Practice' : 'Start Practice'}
+                </button>
+              </div>
 
-                <div>
-                  <XPBar xp={stats?.xp} level={stats?.level} />
+              <div className="bg-white/5 border border-white/10 p-6 rounded-2xl backdrop-blur-sm group hover:bg-white/10 transition-all">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="p-3 bg-purple-500/20 rounded-xl">
+                    <Calendar className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Daily Challenge</h3>
+                    <p className="text-sm text-gray-400">Earn double XP today</p>
+                  </div>
+                </div>
+                <button className="w-full py-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl font-bold transition-all">
+                  Solve Now
+                </button>
+              </div>
+
+              {/* Popular Topics Mini Section */}
+              <div className="bg-white/5 border border-white/10 p-6 rounded-2xl backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold">Popular Topics</h3>
+                  <Rocket className="w-4 h-4 text-blue-400" />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {popularTopics.map(topic => (
+                    <button
+                      key={topic._id}
+                      onClick={() => navigate(`/practice?topic=${topic.slug}`)}
+                      className="px-3 py-1 bg-white/5 hover:bg-blue-600/20 border border-white/5 rounded-full text-[10px] font-bold text-gray-400 hover:text-blue-400 transition-all"
+                    >
+                      {topic.name}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -152,80 +249,205 @@ const Dashboard = () => {
               <StatsCard
                 title="Solved"
                 value={loadingStats ? '…' : analytics?.solved ?? 0}
-                subtitle="Problems solved (attempts)"
+                subtitle="Total"
               />
               <StatsCard
                 title="Failed"
                 value={loadingStats ? '…' : analytics?.failed ?? 0}
-                subtitle="Failed attempts"
+                subtitle="Errors"
               />
               <StatsCard
-                title="Attempts"
-                value={loadingStats ? '…' : analytics?.totalProblemsAttempted ?? 0}
-                subtitle="Total runs recorded"
+                title="Accuracy"
+                value={loadingStats ? '…' : `${analytics?.totalProblemsAttempted ? Math.round((analytics.solved / analytics.totalProblemsAttempted) * 100) : 0}%`}
+                subtitle="Performance"
               />
               <StatsCard
                 title="Avg Time"
                 value={loadingStats ? '…' : `${analytics?.avgTimePerProblemSeconds ?? 0}s`}
-                subtitle="Average time per attempt"
+                subtitle="Speed"
               />
             </div>
           </div>
 
-          {/* Right: Streak + Badges + CTA */}
+          {/* Right: Streak + Badges */}
           <div className="space-y-6">
-            <div className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">Your Stats</h2>
-                <div className="text-xs text-gray-400">Gamification</div>
+            <div className="bg-white/5 p-6 rounded-2xl shadow-lg border border-white/10 backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold">Personal Progress</h2>
+                <TrendingUp className="w-5 h-5 text-green-400" />
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <StatsCard
-                  title="Level"
-                  value={loadingStats ? '…' : stats?.level ?? 1}
-                  subtitle="Based on XP"
-                />
-                <StatsCard
-                  title="XP"
-                  value={loadingStats ? '…' : stats?.xp ?? 0}
-                  subtitle="Total XP"
-                />
-                <StatsCard
-                  title="Streak"
-                  value={loadingStats ? '…' : stats?.currentStreak ?? 0}
-                  subtitle="Current streak (days)"
-                />
-                <StatsCard
-                  title="Longest"
-                  value={loadingStats ? '…' : stats?.longestStreak ?? 0}
-                  subtitle="Best streak (days)"
-                />
-              </div>
-              <div className="mt-4">
-                <StatsCard
-                  title="Total Solved"
-                  value={loadingStats ? '…' : stats?.totalProblemsSolved ?? 0}
-                  subtitle="Awarded solves (XP-based)"
-                />
+              <div className="space-y-4">
+                <XPBar xp={stats?.xp} level={stats?.level} />
+                <div className="grid grid-cols-2 gap-4 mt-6">
+                  <div className="p-4 bg-white/5 rounded-xl border border-white/5">
+                    <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Current Streak</div>
+                    <div className="text-2xl font-bold text-orange-400">{stats?.currentStreak ?? 0} Days</div>
+                  </div>
+                  <div className="p-4 bg-white/5 rounded-xl border border-white/5">
+                    <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Longest Streak</div>
+                    <div className="text-2xl font-bold text-blue-400">{stats?.longestStreak ?? 0} Days</div>
+                  </div>
+                </div>
               </div>
             </div>
 
             <Achievements achievements={stats?.achievements} />
 
-            <div className="bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col items-center justify-center border border-gray-700">
-              <h2 className="text-2xl font-bold mb-3">Start Practicing</h2>
-              <p className="text-gray-400 mb-6 text-center">
-                Generate a new AI coding problem and earn XP as you solve.
-              </p>
-              <button
-                onClick={() => navigate('/practice')}
-                className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg text-xl font-bold transition w-full"
-              >
-                New Session
+            {/* Recently Practiced Section */}
+            {recentlyPracticed.length > 0 && (
+              <div className="bg-white/5 p-6 rounded-2xl shadow-lg border border-white/10 backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold">Recent Practice</h2>
+                  <History className="w-5 h-5 text-purple-400" />
+                </div>
+                <div className="space-y-3">
+                  {recentlyPracticed.map(topic => (
+                    <button
+                      key={topic._id}
+                      onClick={() => navigate(`/practice?topic=${topic.slug}`)}
+                      className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all group"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20 transition-colors">
+                          <Rocket className="w-4 h-4 text-blue-400" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-300 group-hover:text-white">{topic.name}</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
+                        {topic.solvedCount} Solved
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+
+        {/* Explore Topics Section */}
+        <section className="space-y-8 mb-20">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+              <h2 className="text-3xl font-bold">Explore Topics</h2>
+              <p className="text-gray-400 mt-1">Quickly jump into any coding domain</p>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <input 
+                  type="text" 
+                  placeholder="Search tags..."
+                  value={exploreQuery}
+                  onChange={(e) => setExploreQuery(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                />
+              </div>
+              <div className="flex bg-white/5 border border-white/10 rounded-xl p-1">
+                {['All', 'Easy', 'Medium', 'Hard'].map((diff) => (
+                  <button
+                    key={diff}
+                    onClick={() => setSelectedDifficulty(diff)}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      selectedDifficulty === diff 
+                        ? 'bg-blue-600 text-white shadow-lg' 
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {diff}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            {loadingTopics ? (
+              [...Array(12)].map((_, i) => (
+                <div key={i} className="h-10 w-24 bg-white/5 rounded-full animate-pulse" />
+              ))
+            ) : (
+              exploreTopics.map(topic => (
+                <button
+                  key={topic._id}
+                  onClick={() => navigate(`/practice?topic=${topic.slug}`)}
+                  className="group relative px-5 py-2.5 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:scale-105 transition-all duration-300"
+                >
+                  <div className="absolute inset-0 bg-blue-500/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
+                  <div className="relative flex items-center space-x-2">
+                    <span className="text-sm font-medium text-gray-300 group-hover:text-blue-400">
+                      {topic.name}
+                    </span>
+                    {topic.problemCount > 0 && (
+                      <span className="text-[10px] font-bold text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">
+                        {topic.problemCount}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </section>
+
+        {/* Practice Section */}
+        <section className="space-y-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+              <h2 className="text-3xl font-bold">Practice by Topic</h2>
+              <p className="text-gray-400 mt-1">Select a domain to master your skills</p>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <input 
+                  type="text" 
+                  placeholder="Search topics..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                />
+              </div>
+              <button className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all">
+                <Filter className="w-5 h-5 text-gray-400" />
               </button>
             </div>
           </div>
-        </main>
+
+          {loadingTopics ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-64 bg-white/5 rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {filteredTopics.map(topic => (
+                <TopicCard 
+                  key={topic._id} 
+                  topic={topic} 
+                  onClick={() => navigate(`/practice?topic=${topic.slug}`)}
+                />
+              ))}
+            </div>
+          )}
+
+          {filteredTopics.length === 0 && !loadingTopics && (
+            <div className="py-20 text-center">
+              <div className="inline-block p-4 bg-white/5 rounded-full mb-4">
+                <Search className="w-8 h-8 text-gray-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-400">No topics found matching "{searchQuery}"</h3>
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="text-blue-400 mt-2 hover:underline"
+              >
+                Clear search
+              </button>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
