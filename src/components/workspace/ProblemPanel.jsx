@@ -16,6 +16,13 @@ import {
   Send
 } from 'lucide-react';
 
+const FALLBACK_TOPICS = [
+  { _id: '1', name: 'Arrays', slug: 'arrays' },
+  { _id: '2', name: 'Dynamic Programming', slug: 'dynamic-programming' },
+  { _id: '3', name: 'Graphs', slug: 'graphs' },
+  { _id: '4', name: 'Strings', slug: 'strings' }
+];
+
 const ProblemPanel = ({ problem, setProblem, onProblemGenerated, problemId, topicParam, userStats }) => {
   const [topic, setTopic] = useState('Arrays & Hashing');
   const [difficulty, setDifficulty] = useState('Easy');
@@ -90,20 +97,26 @@ const ProblemPanel = ({ problem, setProblem, onProblemGenerated, problemId, topi
   useEffect(() => {
     const fetchTopics = async () => {
       try {
-        const res = await axios.get('/api/topics');
-        setTopics(res.data);
+        const token = localStorage.getItem('token');
+        const config = token
+          ? { headers: { Authorization: `Bearer ${token}` } }
+          : {};
+
+        const res = await axios.get('/api/topics', config);
+        setTopics(Array.isArray(res.data) && res.data.length > 0 ? res.data : FALLBACK_TOPICS);
         
         // If topicParam is provided, find the topic name
-        if (topicParam && res.data.length > 0) {
+        if (topicParam && Array.isArray(res.data) && res.data.length > 0) {
           const foundTopic = res.data.find(t => t.slug === topicParam);
           if (foundTopic) {
             setTopic(foundTopic.name);
           }
-        } else if (res.data.length > 0 && !problemId) {
+        } else if (Array.isArray(res.data) && res.data.length > 0 && !problemId) {
           setTopic(res.data[0].name);
         }
       } catch (err) {
         console.error('Failed to fetch topics:', err);
+        setTopics(FALLBACK_TOPICS);
       }
     };
     fetchTopics();
@@ -483,6 +496,12 @@ const ProblemPanel = ({ problem, setProblem, onProblemGenerated, problemId, topi
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {error}
         </div>
       )}
 
