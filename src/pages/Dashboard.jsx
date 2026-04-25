@@ -22,6 +22,30 @@ const Dashboard = () => {
   const [recommendation, setRecommendation] = useState(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
 
+  // Fallback data for topics
+  const fallbackTopics = [
+    { _id: '1', name: 'Arrays', slug: 'arrays', problemCount: 15, solvedCount: 0 },
+    { _id: '2', name: 'Dynamic Programming', slug: 'dynamic-programming', problemCount: 12, solvedCount: 0 },
+    { _id: '3', name: 'Graphs', slug: 'graphs', problemCount: 10, solvedCount: 0 },
+    { _id: '4', name: 'Strings', slug: 'strings', problemCount: 8, solvedCount: 0 }
+  ];
+
+  // Fallback stats
+  const fallbackStats = {
+    level: 1,
+    xp: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    achievements: []
+  };
+
+  const fallbackAnalytics = {
+    solved: 0,
+    failed: 0,
+    totalProblemsAttempted: 0,
+    avgTimePerProblemSeconds: 0
+  };
+
   const onLogout = () => {
     logout();
     navigate('/login');
@@ -32,32 +56,47 @@ const Dashboard = () => {
       setLoadingStats(true);
       setLoadingTopics(true);
       setStatsError(null);
+      
+      const token = localStorage.getItem('token');
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+
       try {
-        const token = localStorage.getItem('token');
-        const config = {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        };
-        
-        // Fetch Stats
+        console.log('Fetching dashboard stats...');
         const statsRes = await axios.get('/api/gamification/stats', config);
-        setStats(statsRes.data.stats);
-        setAnalytics(statsRes.data.analytics);
-
-        // Fetch Topics
-        const topicsRes = await axios.get('/api/topics', config);
-        setTopics(topicsRes.data);
-
-        // Fetch Recommendations
-        const recRes = await axios.get('/api/adaptive/recommendations', config);
-        setRecommendation(recRes.data);
+        console.log('Stats Response:', statsRes.data);
+        setStats(statsRes.data.stats || fallbackStats);
+        setAnalytics(statsRes.data.analytics || fallbackAnalytics);
       } catch (err) {
-        console.error('Failed to load dashboard data:', err);
+        console.error('Failed to load dashboard stats:', err);
+        setStats(fallbackStats);
+        setAnalytics(fallbackAnalytics);
         setStatsError(err.response?.data?.message || 'Failed to load stats');
       } finally {
         setLoadingStats(false);
+      }
+
+      try {
+        console.log('Fetching topics...');
+        const topicsRes = await axios.get('/api/topics', config);
+        console.log('Topics Response:', topicsRes.data);
+        setTopics(topicsRes.data.length > 0 ? topicsRes.data : fallbackTopics);
+      } catch (err) {
+        console.error('Failed to load topics:', err);
+        setTopics(fallbackTopics);
+      } finally {
         setLoadingTopics(false);
+      }
+
+      try {
+        console.log('Fetching recommendations...');
+        const recRes = await axios.get('/api/adaptive/recommendations', config);
+        setRecommendation(recRes.data);
+      } catch (err) {
+        console.error('Failed to load recommendations:', err);
       }
     };
 
