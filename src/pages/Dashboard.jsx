@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
@@ -6,7 +6,7 @@ import XPBar from '../components/profile/XPBar';
 import StatsCard from '../components/profile/StatsCard';
 import Achievements from '../components/profile/Achievements';
 import TopicCard from '../components/practice/TopicCard';
-import { Search, Filter, Rocket, TrendingUp, Calendar } from 'lucide-react';
+import { Search, Filter, Rocket, TrendingUp, Calendar, History } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, logout } = useContext(AuthContext);
@@ -22,34 +22,26 @@ const Dashboard = () => {
   const [recommendation, setRecommendation] = useState(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
 
-  // Fallback data for topics
-  const fallbackTopics = [
+  // Stable fallback objects — defined outside render to avoid recreation
+  const fallbackTopics = useMemo(() => [
     { _id: '1', name: 'Arrays', slug: 'arrays', problemCount: 15, solvedCount: 0 },
     { _id: '2', name: 'Dynamic Programming', slug: 'dynamic-programming', problemCount: 12, solvedCount: 0 },
     { _id: '3', name: 'Graphs', slug: 'graphs', problemCount: 10, solvedCount: 0 },
     { _id: '4', name: 'Strings', slug: 'strings', problemCount: 8, solvedCount: 0 }
-  ];
+  ], []);
 
-  // Fallback stats
-  const fallbackStats = {
-    level: 1,
-    xp: 0,
-    currentStreak: 0,
-    longestStreak: 0,
-    achievements: []
-  };
+  const fallbackStats = useMemo(() => ({
+    level: 1, xp: 0, currentStreak: 0, longestStreak: 0, achievements: []
+  }), []);
 
-  const fallbackAnalytics = {
-    solved: 0,
-    failed: 0,
-    totalProblemsAttempted: 0,
-    avgTimePerProblemSeconds: 0
-  };
+  const fallbackAnalytics = useMemo(() => ({
+    solved: 0, failed: 0, totalProblemsAttempted: 0, avgTimePerProblemSeconds: 0
+  }), []);
 
-  const onLogout = () => {
+  const onLogout = useCallback(() => {
     logout();
     navigate('/login');
-  };
+  }, [logout, navigate]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,9 +57,7 @@ const Dashboard = () => {
       };
 
       try {
-        console.log('Fetching dashboard stats...');
         const statsRes = await axios.get('/api/gamification/stats', config);
-        console.log('Stats Response:', statsRes.data);
         setStats(statsRes.data.stats || fallbackStats);
         setAnalytics(statsRes.data.analytics || fallbackAnalytics);
       } catch (err) {
@@ -80,9 +70,7 @@ const Dashboard = () => {
       }
 
       try {
-        console.log('Fetching topics...');
         const topicsRes = await axios.get('/api/topics', config);
-        console.log('Topics Response:', topicsRes.data);
         setTopics(topicsRes.data.length > 0 ? topicsRes.data : fallbackTopics);
       } catch (err) {
         console.error('Failed to load topics:', err);
@@ -92,7 +80,6 @@ const Dashboard = () => {
       }
 
       try {
-        console.log('Fetching recommendations...');
         const recRes = await axios.get('/api/adaptive/recommendations', config);
         setRecommendation(recRes.data);
       } catch (err) {

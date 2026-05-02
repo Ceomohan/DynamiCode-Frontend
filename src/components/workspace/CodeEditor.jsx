@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import Editor from '@monaco-editor/react';
 import { 
   Play, 
@@ -12,7 +12,7 @@ import {
   Cpu
 } from 'lucide-react';
 
-const CodeEditor = ({ onRunCode, onSubmit, isExecuting, problem, executionOutput }) => {
+const CodeEditor = memo(({ onRunCode, onSubmit, isExecuting, problem, executionOutput }) => {
   const [code, setCode] = useState('// Write your code here...');
   const [language, setLanguage] = useState('javascript');
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
@@ -55,38 +55,53 @@ const CodeEditor = ({ onRunCode, onSubmit, isExecuting, problem, executionOutput
     }
   }, [problem]);
 
-  const handleEditorDidMount = (editor, monaco) => {
+  const handleEditorDidMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
-
-    // Define custom theme with glow effects
     monaco.editor.defineTheme('dynami-dark', {
       base: 'vs-dark',
       inherit: true,
       rules: [],
       colors: {
-        'editor.background': '#020617', // Slate 950
-        'editor.lineHighlightBackground': '#1e293b40', // Slate 800 with opacity
-        'editorCursor.foreground': '#60a5fa', // Blue 400
+        'editor.background': '#020617',
+        'editor.lineHighlightBackground': '#1e293b40',
+        'editorCursor.foreground': '#60a5fa',
         'editorBracketMatch.background': '#3b82f640',
         'editorBracketMatch.border': '#3b82f6',
       }
     });
-
     monaco.editor.setTheme('dynami-dark');
-  };
+  }, []);
 
-  const handleEditorChange = (value) => {
+  const handleEditorChange = useCallback((value) => {
     setCode(value);
-  };
+  }, []);
 
-  const getAiHint = () => {
+  const getAiHint = useCallback(() => {
     setShowAiHint(true);
     setAiHint("Thinking...");
-    // Simulate AI thinking
     setTimeout(() => {
       setAiHint("Try using a sliding window approach to optimize space complexity.");
     }, 1500);
-  };
+  }, []);
+
+  // Stable options object — recreating this on every render causes Monaco to
+  // re-apply all settings unnecessarily.
+  const editorOptions = useMemo(() => ({
+    minimap: { enabled: false },
+    fontSize: 14,
+    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+    lineNumbers: 'on',
+    roundedSelection: true,
+    scrollBeyondLastLine: false,
+    automaticLayout: true,
+    padding: { top: 20, bottom: 20 },
+    cursorBlinking: 'smooth',
+    cursorSmoothCaretAnimation: 'on',
+    smoothScrolling: true,
+    lineHeight: 24,
+    renderLineHighlight: 'all',
+    scrollbar: { vertical: 'hidden', horizontal: 'hidden' },
+  }), []);
 
   return (
     <div className={`h-full w-full flex flex-col bg-[#020617] relative group/editor ${isShaking ? 'animate-shake' : ''}`}>
@@ -149,7 +164,7 @@ const CodeEditor = ({ onRunCode, onSubmit, isExecuting, problem, executionOutput
 
         <div className="flex items-center space-x-3">
           <button
-            onClick={() => onRunCode(code)}
+            onClick={() => onRunCode(code, language)}
             disabled={isExecuting}
             className="group flex items-center space-x-2 px-4 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg border border-white/10 transition-all active:scale-95 disabled:opacity-50"
           >
@@ -162,7 +177,7 @@ const CodeEditor = ({ onRunCode, onSubmit, isExecuting, problem, executionOutput
           </button>
 
           <button
-            onClick={() => onSubmit && onSubmit(code)}
+            onClick={() => onSubmit && onSubmit(code, language)}
             disabled={isExecuting}
             className="flex items-center space-x-2 px-5 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-95 disabled:opacity-50"
           >
@@ -181,25 +196,7 @@ const CodeEditor = ({ onRunCode, onSubmit, isExecuting, problem, executionOutput
           onMount={handleEditorDidMount}
           onChange={handleEditorChange}
           theme="vs-dark"
-          options={{
-            minimap: { enabled: false },
-            fontSize: 14,
-            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-            lineNumbers: 'on',
-            roundedSelection: true,
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            padding: { top: 20, bottom: 20 },
-            cursorBlinking: 'smooth',
-            cursorSmoothCaretAnimation: 'on',
-            smoothScrolling: true,
-            lineHeight: 24,
-            renderLineHighlight: 'all',
-            scrollbar: {
-              vertical: 'hidden',
-              horizontal: 'hidden'
-            }
-          }}
+          options={editorOptions}
         />
 
         {/* Floating AI Hint Tooltip */}
@@ -237,6 +234,7 @@ const CodeEditor = ({ onRunCode, onSubmit, isExecuting, problem, executionOutput
       </div>
     </div>
   );
-};
+});
 
+CodeEditor.displayName = 'CodeEditor';
 export default CodeEditor;

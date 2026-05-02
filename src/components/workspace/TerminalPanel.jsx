@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { 
   Terminal as TerminalIcon, 
   TestTube, 
@@ -12,7 +12,7 @@ import {
   Loader2
 } from 'lucide-react';
 
-const TerminalPanel = ({ output, isExecuting, testCases = [] }) => {
+const TerminalPanel = memo(({ output, isExecuting, testCases = [] }) => {
   const [activeTab, setActiveTab] = useState('output');
   const [logs, setLogs] = useState([]);
 
@@ -23,11 +23,13 @@ const TerminalPanel = ({ output, isExecuting, testCases = [] }) => {
     }
   }, [isExecuting, output]);
 
-  const tabs = [
-    { id: 'output', label: 'Output', icon: TerminalIcon },
+  // Stable — defined outside component would be ideal but kept here for
+  // co-location; useMemo ensures no new array reference each render.
+  const tabs = useMemo(() => [
+    { id: 'output',     label: 'Output',     icon: TerminalIcon },
     { id: 'test-cases', label: 'Test Cases', icon: TestTube },
-    { id: 'console', label: 'Console', icon: Layout },
-  ];
+    { id: 'console',    label: 'Console',    icon: Layout },
+  ], []);
 
   return (
     <div className="h-full flex flex-col bg-[#020617] border-t border-white/10 font-mono">
@@ -201,6 +203,7 @@ const TerminalPanel = ({ output, isExecuting, testCases = [] }) => {
       </div>
     </div>
   );
-};
+});
 
+TerminalPanel.displayName = 'TerminalPanel';
 export default TerminalPanel;

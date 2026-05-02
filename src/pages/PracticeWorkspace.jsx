@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { 
   Trophy, 
@@ -20,10 +19,12 @@ import {
   Menu,
   MoreVertical
 } from 'lucide-react';
+import { useNavigate,useLocation,Link } from 'react-router-dom';
 import ProblemPanel from '../components/workspace/ProblemPanel';
 import CodeEditor from '../components/workspace/CodeEditor';
 import TerminalPanel from '../components/workspace/TerminalPanel';
 import AiSolutionPanel from '../components/workspace/AiSolutionPanel';
+import { useResizable } from '../hooks/useResizable';
 
 const PracticeWorkspace = () => {
   const navigate = useNavigate();
@@ -41,7 +42,17 @@ const PracticeWorkspace = () => {
   const [gainedXp, setGainedXp] = useState(0);
   const [unlockedBadge, setUnlockedBadge] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
+  // Resizable panels
+  const leftPanel = useResizable({ initial: 360, min: 280, max: 600, direction: 'horizontal', storageKey: 'dc_left_w' });
+  const rightPanel = useResizable({ initial: 380, min: 280, max: 560, direction: 'horizontal', storageKey: 'dc_right_w' });
+  const termPanel = useResizable({ initial: 260, min: 150, max: 500, direction: 'vertical', storageKey: 'dc_term_h' });
+
+  // Derived sizes (collapse overrides)
+  const leftSize = leftSidebarCollapsed ? 0 : leftPanel.size;
+  const rightSize = rightSidebarCollapsed ? 0 : rightPanel.size;
+  const termHeight = termPanel.size;
+
   // Extract query params
   const queryParams = new URLSearchParams(location.search);
   const problemId = queryParams.get('problem');
@@ -73,7 +84,7 @@ const PracticeWorkspace = () => {
     currentProblemData.current = problemData;
   };
 
-  const recordAttempt = async (solved) => {
+  const recordAttempt = useCallback(async (solved) => {
     if (!currentProblemData.current || !problemStartTime.current) return;
 
     try {
@@ -97,11 +108,9 @@ const PracticeWorkspace = () => {
           timeTaken,
         }, config);
         
-        // Handle Gamification Popups
         if (res.data.stats) {
           const newStats = res.data.stats;
           
-          // XP Gain Popup
           const xpGained = newStats.xp - userStats.xp;
           if (xpGained > 0) {
             setGainedXp(xpGained);
@@ -109,19 +118,16 @@ const PracticeWorkspace = () => {
             setTimeout(() => setShowXpPopup(false), 4000);
           }
 
-          // Streak Milestone Popup (e.g., every 5 days)
           if (newStats.streak > userStats.streak && newStats.streak % 5 === 0) {
             setShowStreakPopup(true);
             setTimeout(() => setShowStreakPopup(false), 5000);
           }
 
-          // Badge Unlock Simulation (or from API if available)
           if (res.data.unlockedBadge) {
             setUnlockedBadge(res.data.unlockedBadge);
             setShowBadgePopup(true);
             setTimeout(() => setShowBadgePopup(false), 6000);
           } else if (newStats.level > userStats.level) {
-            // Level up badge simulation
             setUnlockedBadge({
               name: `Level ${newStats.level} Master`,
               icon: '🏆',
@@ -137,9 +143,9 @@ const PracticeWorkspace = () => {
     } catch (error) {
       console.error('Error recording attempt:', error);
     }
-  };
+  }, [problem?._id, userStats.xp, userStats.streak, userStats.level]);
 
-  const handleRunCode = async (code, language = 'javascript') => {
+  const handleRunCode = useCallback(async (code, language = 'javascript') => {
     setIsExecuting(true);
     setExecutionOutput(null);
     attemptCount.current += 1;
@@ -165,7 +171,7 @@ const PracticeWorkspace = () => {
     } finally {
       setIsExecuting(false);
     }
-  };
+  }, [problem, recordAttempt]);
 
   return (
     <div className="flex flex-col h-screen bg-[#050510] text-white overflow-hidden relative font-sans selection:bg-blue-500/30">
@@ -428,8 +434,9 @@ const PracticeWorkspace = () => {
         {/* Left Sidebar: AI Problem Generator */}
         <aside 
           className={`h-full border-r border-white/10 bg-white/[0.02] backdrop-blur-xl overflow-hidden transition-all duration-300 relative group/aside ${
-            leftSidebarCollapsed ? 'lg:w-0' : 'lg:w-[380px]'
-          } ${leftSidebarCollapsed ? 'hidden lg:block' : 'block'}`}
+            leftSidebarCollapsed ? 'hidden lg:block' : 'block'
+          }`}
+          style={{ width: leftSidebarCollapsed ? 0 : leftPanel.size }}
         >
           <div className="h-full overflow-y-auto custom-scrollbar">
             <ProblemPanel 
@@ -453,6 +460,18 @@ const PracticeWorkspace = () => {
           </button>
         </aside>
 
+        {/* Left ↔ Center resize handle */}
+        {!leftSidebarCollapsed && (
+          <div
+            className="w-1 cursor-col-resize bg-white/5 hover:bg-blue-500/60 active:bg-blue-500 transition-colors shrink-0 relative group"
+            onMouseDown={leftPanel.onMouseDown}
+          >
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-8 h-1 rounded-full bg-white/20 group-hover:bg-blue-400/60 transition-colors" />
+            </div>
+          </div>
+        )}
+
         {/* Center Main Area: Editor & Terminal */}
         <section className="flex-1 flex flex-col min-w-0 border-r border-white/10 bg-black/20 overflow-hidden">
           {/* Top: Code Editor Area */}
@@ -466,8 +485,21 @@ const PracticeWorkspace = () => {
             />
           </div>
           
+          {/* Editor ↕ Terminal resize handle */}
+          <div
+            className="h-1 cursor-row-resize bg-white/5 hover:bg-blue-500/60 active:bg-blue-500 transition-colors shrink-0 relative group"
+            onMouseDown={termPanel.onMouseDown}
+          >
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-8 w-1 rounded-full bg-white/20 group-hover:bg-blue-400/60 transition-colors" />
+            </div>
+          </div>
+
           {/* Bottom: Terminal Area */}
-          <div className="h-[300px] lg:h-[30%] min-h-[200px] bg-white/[0.02] border-t border-white/10 overflow-hidden shrink-0">
+          <div
+            className="bg-white/[0.02] border-t border-white/10 overflow-hidden shrink-0"
+            style={{ height: termHeight }}
+          >
             <TerminalPanel 
               output={executionOutput} 
               isExecuting={isExecuting}
@@ -476,11 +508,24 @@ const PracticeWorkspace = () => {
           </div>
         </section>
 
+        {/* Center ↔ Right resize handle */}
+        {!rightSidebarCollapsed && (
+          <div
+            className="w-1 cursor-col-resize bg-white/5 hover:bg-blue-500/60 active:bg-blue-500 transition-colors shrink-0 relative group"
+            onMouseDown={rightPanel.onMouseDown}
+          >
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-8 h-1 rounded-full bg-white/20 group-hover:bg-blue-400/60 transition-colors" />
+            </div>
+          </div>
+        )}
+
         {/* Right Sidebar: AI Assistant */}
         <aside 
           className={`h-full bg-white/[0.02] backdrop-blur-xl transition-all duration-300 relative group/right ${
-            rightSidebarCollapsed ? 'lg:w-0' : 'lg:w-[400px]'
-          } ${rightSidebarCollapsed ? 'hidden lg:block' : 'block'}`}
+            rightSidebarCollapsed ? 'hidden lg:block' : 'block'
+          }`}
+          style={{ width: rightSidebarCollapsed ? 0 : rightPanel.size }}
         >
           <div className="h-full overflow-hidden">
             <AiSolutionPanel problem={problem} />

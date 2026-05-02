@@ -1,10 +1,14 @@
-const XPBar = ({ xp = 0, level = 1 }) => {
-  const safeXP = Math.max(0, Number(xp) || 0);
+import { memo, useMemo } from 'react';
+
+const XPBar = memo(({ xp = 0, level = 1 }) => {
+  const safeXP    = Math.max(0, Number(xp)    || 0);
   const safeLevel = Math.max(1, Number(level) || 1);
 
-  const xpPerLevel = 100;
-  const currentLevelXP = safeXP % xpPerLevel;
-  const progress = (currentLevelXP / xpPerLevel) * 100;
+  const { currentLevelXP, progress } = useMemo(() => {
+    const xpPerLevel    = 100;
+    const currentLevelXP = safeXP % xpPerLevel;
+    return { currentLevelXP, progress: (currentLevelXP / xpPerLevel) * 100 };
+  }, [safeXP]);
 
   return (
     <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
@@ -14,23 +18,19 @@ const XPBar = ({ xp = 0, level = 1 }) => {
           Level <span className="text-blue-400 font-bold">{safeLevel}</span>
         </div>
       </div>
-
       <div className="w-full bg-gray-700 rounded h-3 overflow-hidden">
         <div
-          className="h-3 bg-blue-600"
+          className="h-3 bg-blue-600 transition-all duration-500"
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
       </div>
-
       <div className="flex items-center justify-between mt-2 text-xs text-gray-400">
-        <span>
-          {currentLevelXP}/{xpPerLevel} XP
-        </span>
+        <span>{currentLevelXP}/100 XP</span>
         <span className="text-gray-500">Total: {safeXP} XP</span>
       </div>
     </div>
   );
-};
+});
 
+XPBar.displayName = 'XPBar';
 export default XPBar;
-

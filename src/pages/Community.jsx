@@ -17,7 +17,8 @@ import {
   ArrowUp,
   Filter,
   X,
-  Send
+  Send,
+  Rocket
 } from 'lucide-react';
 
 const Community = () => {

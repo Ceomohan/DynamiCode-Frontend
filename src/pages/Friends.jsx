@@ -274,7 +274,7 @@ const Friends = () => {
                       <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                       <p className="text-gray-500 text-sm">Syncing network...</p>
                     </div>
-                  ) : filteredFriends.length > 0 ? filteredFriends.map(friend => (
+                  ) : filteredFriends.length > 0 ? filteredFriends.map((friend, friendIdx) => (
                     <button
                       key={friend.friendshipId}
                       onClick={() => setSelectedFriend(friend)}
@@ -283,7 +283,7 @@ const Friends = () => {
                       <div className="flex items-center space-x-4">
                         <div className="relative">
                           <img className="w-12 h-12 rounded-xl bg-gray-800" src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.name}`} alt="" />
-                          <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-4 border-[#0f172a] ${idx % 2 === 0 ? 'bg-green-500' : 'bg-gray-600'}`} />
+                          <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-4 border-[#0f172a] ${friendIdx % 2 === 0 ? 'bg-green-500' : 'bg-gray-600'}`} />
                         </div>
                         <div className="text-left">
                           <div className="font-bold text-gray-200 group-hover:text-white transition-colors">{friend.name}</div>

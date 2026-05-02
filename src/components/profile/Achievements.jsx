@@ -1,12 +1,15 @@
-const Achievements = ({ achievements = [] }) => {
+import { memo } from 'react';
+
+const Achievements = memo(({ achievements = [] }) => {
   const list = Array.isArray(achievements) ? achievements : [];
 
   return (
     <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
       <div className="text-sm font-bold text-white mb-3">Badges</div>
-
       {list.length === 0 ? (
-        <div className="text-sm text-gray-400">No achievements yet. Solve a problem to unlock your first badge.</div>
+        <div className="text-sm text-gray-400">
+          No achievements yet. Solve a problem to unlock your first badge.
+        </div>
       ) : (
         <div className="flex flex-wrap gap-2">
           {list.map((badge) => (
@@ -21,7 +24,7 @@ const Achievements = ({ achievements = [] }) => {
       )}
     </div>
   );
-};
+});
 
+Achievements.displayName = 'Achievements';
 export default Achievements;
-
