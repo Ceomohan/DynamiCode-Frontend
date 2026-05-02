@@ -295,7 +295,7 @@ const PracticeWorkspace = () => {
 
           <Link to="/dashboard" className="flex items-center space-x-2 group shrink-0">
             <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg group-hover:scale-110 transition-transform shadow-lg shadow-blue-600/20">
-              <Code2 className="w-5 h-5 sm:w-6 h-6 text-white" />
+              <Code2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <span className="text-lg sm:text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 tracking-tight">
               DynamiCode
