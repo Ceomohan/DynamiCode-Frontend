@@ -42,6 +42,7 @@ const PracticeWorkspace = () => {
   const [gainedXp, setGainedXp] = useState(0);
   const [unlockedBadge, setUnlockedBadge] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('javascript');
 
   // Resizable panels
   const leftPanel = useResizable({ initial: 360, min: 280, max: 600, direction: 'horizontal', storageKey: 'dc_left_w' });
@@ -478,10 +479,11 @@ const PracticeWorkspace = () => {
           <div className="flex-1 min-h-[400px] lg:min-h-0">
             <CodeEditor 
               onRunCode={handleRunCode} 
-              onSubmit={handleRunCode} // Reusing run for now
+              onSubmit={handleRunCode}
               isExecuting={isExecuting}
               problem={problem}
               executionOutput={executionOutput}
+              onLanguageChange={setSelectedLanguage}
             />
           </div>
           
@@ -528,7 +530,7 @@ const PracticeWorkspace = () => {
           style={{ width: rightSidebarCollapsed ? 0 : rightPanel.size }}
         >
           <div className="h-full overflow-hidden">
-            <AiSolutionPanel problem={problem} />
+            <AiSolutionPanel problem={problem} language={selectedLanguage} />
           </div>
 
           {/* Collapse Toggle Button (Desktop only) */}

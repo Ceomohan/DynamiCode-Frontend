@@ -76,7 +76,9 @@ const MessageBubble = ({ msg, copied, handleCopy }) => {
             <div className="bg-[#010409] rounded-xl border border-white/5 overflow-hidden">
               <div className="px-4 py-1.5 bg-white/5 border-b border-white/5 flex items-center">
                 <Code2 className="w-3.5 h-3.5 text-blue-400 mr-2" />
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">JavaScript Solution</span>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                  {msg.language || 'JavaScript'} Solution
+                </span>
               </div>
               <pre className="p-4 overflow-x-auto text-[13px] font-mono text-gray-300 custom-scrollbar">
                 <code>{msg.solutionData.solutionCode}</code>
@@ -99,7 +101,7 @@ const MessageBubble = ({ msg, copied, handleCopy }) => {
   );
 };
 
-const AiSolutionPanel = ({ problem }) => {
+const AiSolutionPanel = ({ problem, language = 'javascript' }) => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -169,7 +171,17 @@ const AiSolutionPanel = ({ problem }) => {
 
     setLoading(true);
     setError(null);
-    setMessages(prev => [...prev, { role: 'user', content: 'Show me the full solution' }]);
+
+    // Map internal language id to a display label for the chat message
+    const languageLabels = {
+      javascript: 'JavaScript',
+      python: 'Python',
+      java: 'Java',
+      cpp: 'C++',
+    };
+    const languageLabel = languageLabels[language] || language;
+
+    setMessages(prev => [...prev, { role: 'user', content: `Show me the full solution in ${languageLabel}` }]);
 
     try {
       const token = localStorage.getItem('token');
@@ -179,7 +191,7 @@ const AiSolutionPanel = ({ problem }) => {
 
       const res = await axios.post(
         '/api/solutions/generate',
-        { problem, language: 'javascript' },
+        { problem, language },
         config
       );
 
@@ -188,6 +200,7 @@ const AiSolutionPanel = ({ problem }) => {
         role: 'ai',
         type: 'solution',
         solutionData: solution,
+        language: languageLabel,
         content: "I've synthesized an optimal solution for you. Here's the breakdown:"
       }]);
     } catch (err) {

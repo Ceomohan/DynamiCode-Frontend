@@ -12,7 +12,7 @@ import {
   Cpu
 } from 'lucide-react';
 
-const CodeEditor = memo(({ onRunCode, onSubmit, isExecuting, problem, executionOutput }) => {
+const CodeEditor = memo(({ onRunCode, onSubmit, isExecuting, problem, executionOutput, onLanguageChange }) => {
   const [code, setCode] = useState('// Write your code here...');
   const [language, setLanguage] = useState('javascript');
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
@@ -141,6 +141,7 @@ const CodeEditor = memo(({ onRunCode, onSubmit, isExecuting, problem, executionO
                     onClick={() => {
                       setLanguage(lang.id);
                       setShowLanguageDropdown(false);
+                      if (onLanguageChange) onLanguageChange(lang.id);
                     }}
                     className={`w-full flex items-center space-x-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5 ${
                       language === lang.id ? 'text-blue-400 bg-blue-400/5' : 'text-gray-400'
